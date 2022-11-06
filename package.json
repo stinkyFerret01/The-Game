@@ -1,0 +1,26 @@
+{
+  "name": "back",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stinkyFerret01/The-Game-back.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/stinkyFerret01/The-Game-back/issues"
+  },
+  "homepage": "https://github.com/stinkyFerret01/The-Game-back#readme",
+  "dependencies": {
+    "crypto-js": "^4.1.1",
+    "express": "^4.18.2",
+    "mongoose": "^6.7.1",
+    "uid2": "^1.0.0"
+  }
+}
