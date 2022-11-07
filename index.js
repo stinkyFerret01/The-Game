@@ -9,14 +9,15 @@ app.use(express.json());
 const mongoose = require("mongoose");
 mongoose.connect("mongodb://localhost:27017/The-Game-Data");
 
-//-2a-// model
+//-2a-// modeles
 const Player = mongoose.model("Player", {
+  mail: String,
+  name: String,
   account: {
-    mail: String,
-    name: String,
     salt: String,
     hash: String,
     token: String,
+    isAdmin: String,
   },
   settings: {},
   score: { score: Number, level: Number },
@@ -24,22 +25,35 @@ const Player = mongoose.model("Player", {
 
 //////---3---////// AUTHENTIFICATION
 
-//-3a- cryptage de MDP, génération de tokens
+//-3a-// cryptage de MDP, génération de tokens
 const SHA256 = require("crypto-js/sha256");
 const encBase64 = require("crypto-js/enc-base64");
 const uid2 = require("uid2");
 
+//-3b-// authentification administrateur
+const isAdmin = async (req, res, next) => {
+  try {
+    const admin = await Player.findById(req.body.id);
+    console.log(admin.account.isAdmin);
+    if (admin.account.isAdmin === "true") {
+      console.log("ok");
+      return next();
+    } else {
+      return res
+        .status(401)
+        .json({ error: "Unauthorized", player: admin.name });
+    }
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
 //////---4---////// ROUTES
 
-//--4a--// test connection a la base de données
-app.post("/", async (req, res) => {
-  console.log(req.body.name);
-  const newPlayer = new Player({
-    name: req.body.name,
-    mail: req.body.age,
-  });
-  await newPlayer.save();
-  res.json({ message: req.body.name });
+//--4a--// test
+app.post("/game/admin", isAdmin, async (req, res) => {
+  console.log("ok");
+  res.json({ message: "youre an admin" });
 });
 
 //--4b--// enregistrement de joueurs (signUp)
@@ -58,19 +72,21 @@ app.post("/player/signup", async (req, res) => {
           "pour vous enregistrer, vous devez nous transmettre un nom, une adresse mail et un mot de passe",
       });
     } else {
+      console.log(req.body.name);
       const player = await Player.findOne({ name: req.body.name });
-      //   const playerByMail = await Player.findOne({ mail: req.body.mail });
+      console.log(player);
       if (player === null) {
         const newSalt = uid2(16);
         const newHash = SHA256(req.body.password + newSalt).toString(encBase64);
         const token = uid2(32);
         const newPlayer = new Player({
+          mail: req.body.mail,
+          name: req.body.name,
           account: {
-            mail: req.body.mail,
-            name: req.body.name,
             salt: newSalt,
             hash: newHash,
             token: token,
+            isAdmin: "false",
           },
           settings: {},
           score: { score: 0, level: 1 },
@@ -118,6 +134,24 @@ app.post("/player/login", async (req, res) => {
     res.status(400).json({ error: error.message });
   }
 });
+
+//--4d--// acces au leader-board
+app.get("/game/lead", async (req, res) => {
+  try {
+    const leaderBoard = [];
+    const playersData = await Player.find();
+    playersData.forEach((player) =>
+      leaderBoard.push({ name: player.name, score: player.score.score })
+    );
+    leaderBoard.sort(function (a, b) {
+      return b.score - a.score;
+    });
+    res.status(200).json(leaderBoard);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
 //--404--//
 app.all("*", (req, res) => {
   res.status(404).json({ Alerte: "Page not found" });
