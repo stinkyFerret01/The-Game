@@ -1,9 +1,12 @@
 //////---1---////// SERVER CONFIG
 const express = require("express");
 const app = express();
+const axios = require("axios");
+const cors = require("cors");
+require("dotenv").config();
 
 app.use(express.json());
-// app.use(cors()); //déploiement
+app.use(cors());
 
 //////---2---////// DATABASE-CONFIG
 const mongoose = require("mongoose");

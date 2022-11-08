@@ -18,7 +18,9 @@
   },
   "homepage": "https://github.com/stinkyFerret01/The-Game-back#readme",
   "dependencies": {
+    "cors": "^2.8.5",
     "crypto-js": "^4.1.1",
+    "dotenv": "^16.0.3",
     "express": "^4.18.2",
     "mongoose": "^6.7.1",
     "uid2": "^1.0.0"
