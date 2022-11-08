@@ -1,7 +1,6 @@
 //////---1---////// SERVER CONFIG
 const express = require("express");
 const app = express();
-const axios = require("axios");
 const cors = require("cors");
 require("dotenv").config();
 
@@ -95,7 +94,14 @@ app.post("/player/signup", async (req, res) => {
           score: { score: 0, level: 1 },
         });
         await newPlayer.save();
-        res.status(200).json({ message: "enregistrement terminé!" });
+        res.status(200).json({
+          message: "enregistrement terminé!",
+          playerData: {
+            name: newPlayer.name,
+            score: newPlayer.score,
+            token: newPlayer.account.token,
+          },
+        });
       } else {
         res.status(400).json({
           Alerte: "Un joueur a déja choisi ce nom!",
