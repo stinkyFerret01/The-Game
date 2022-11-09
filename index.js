@@ -54,14 +54,12 @@ const isAdmin = async (req, res, next) => {
 
 //--4a--// test
 app.post("/game/admin", isAdmin, async (req, res) => {
-  console.log("ok");
   res.json({ message: "youre an admin" });
 });
 
 //--4b--// enregistrement de joueurs (signUp)
 app.post("/player/signup", async (req, res) => {
   try {
-    console.log("Tout marche bien serveur");
     if (
       req.body.name === undefined ||
       req.body.mail === undefined ||
@@ -74,9 +72,7 @@ app.post("/player/signup", async (req, res) => {
           "pour vous enregistrer, vous devez nous transmettre un nom, une adresse mail et un mot de passe",
       });
     } else {
-      console.log(req.body.name);
       const player = await Player.findOne({ name: req.body.name });
-      console.log(player);
       if (player === null) {
         const newSalt = uid2(16);
         const newHash = SHA256(req.body.password + newSalt).toString(encBase64);
@@ -154,13 +150,17 @@ app.post("/player/login", async (req, res) => {
 //--4d--// connections automatique de joueurs via leur token
 app.post("/player/autologin", async (req, res) => {
   try {
-    const connectingPlayer = await Player.findOne({ token: req.body.token });
+    const connectingPlayer = await Player.findOne({ name: req.body.name });
     if (connectingPlayer === null) {
       res.status(400).json({
-        Alerte: "vous ne faites pas parti de notre base de données...",
+        Alerte:
+          "vous ne faites pas parti de notre base de données, vous devez vous enregistrer",
+      });
+    } else if (connectingPlayer.account.token !== req.body.token) {
+      res.status(400).json({
+        Alerte: "votre token a expiré, vous devez vous reconnecter",
       });
     } else {
-      await connectingPlayer.save();
       res.status(200).json({
         message: "Vous êtes connecté!",
         playerData: {
