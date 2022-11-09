@@ -100,7 +100,7 @@ app.post("/player/signup", async (req, res) => {
             name: newPlayer.name,
             score: newPlayer.score,
             token: newPlayer.account.token,
-            accessLevel: newPlayer.account.accessLevel
+            accessLevel: newPlayer.account.accessLevel,
           },
         });
       } else {
@@ -128,6 +128,7 @@ app.post("/player/login", async (req, res) => {
         encBase64
       )
     ) {
+      console.log(connectingPlayer);
       genToken = uid2(32);
       connectingPlayer.account.token = genToken;
       await connectingPlayer.save();
@@ -137,7 +138,7 @@ app.post("/player/login", async (req, res) => {
           name: connectingPlayer.name,
           score: connectingPlayer.score,
           token: connectingPlayer.account.token,
-          accessLevel: connectingPlayer.account.accessLevel
+          accessLevel: connectingPlayer.account.accessLevel,
         },
       });
     } else {
@@ -150,7 +151,31 @@ app.post("/player/login", async (req, res) => {
   }
 });
 
-//--4d--// acces au leader-board
+//--4d--// connections automatique de joueurs via leur token
+app.post("/player/autologin", async (req, res) => {
+  try {
+    const connectingPlayer = await Player.findOne({ token: req.body.token });
+    if (connectingPlayer === null) {
+      res.status(400).json({
+        Alerte: "vous ne faites pas parti de notre base de données...",
+      });
+    } else {
+      await connectingPlayer.save();
+      res.status(200).json({
+        message: "Vous êtes connecté!",
+        playerData: {
+          name: connectingPlayer.name,
+          score: connectingPlayer.score,
+          accessLevel: connectingPlayer.account.accessLevel,
+        },
+      });
+    }
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+//--4e--// acces au leader-board
 app.get("/game/lead", async (req, res) => {
   try {
     const leaderBoard = [];
@@ -161,7 +186,7 @@ app.get("/game/lead", async (req, res) => {
     leaderBoard.sort(function (a, b) {
       return b.score - a.score;
     });
-    res.status(200).json({leaderBoard:leaderBoard});
+    res.status(200).json({ leaderBoard: leaderBoard });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
