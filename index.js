@@ -19,8 +19,7 @@ const Player = mongoose.model("Player", {
     salt: String,
     hash: String,
     token: String,
-    isAdmin: String,
-    isLandlord: String,
+    accessLevel: Number,
   },
   settings: {},
   score: { score: Number, level: Number },
@@ -38,7 +37,7 @@ const isAdmin = async (req, res, next) => {
   try {
     const admin = await Player.findById(req.body.id);
     console.log(admin.account.isAdmin);
-    if (admin.account.isAdmin === "true") {
+    if (admin.account.accessLevel > 1) {
       console.log("ok");
       return next();
     } else {
@@ -89,8 +88,7 @@ app.post("/player/signup", async (req, res) => {
             salt: newSalt,
             hash: newHash,
             token: token,
-            isAdmin: "false",
-            isLandlord: "false",
+            accessLevel: 0,
           },
           settings: {},
           score: { score: 0, level: 1 },
@@ -102,6 +100,7 @@ app.post("/player/signup", async (req, res) => {
             name: newPlayer.name,
             score: newPlayer.score,
             token: newPlayer.account.token,
+            accessLevel: newPlayer.account.accessLevel
           },
         });
       } else {
@@ -134,7 +133,12 @@ app.post("/player/login", async (req, res) => {
       await connectingPlayer.save();
       res.status(200).json({
         message: "Vous êtes connecté!",
-        token: connectingPlayer.account.token,
+        playerData: {
+          name: connectingPlayer.name,
+          score: connectingPlayer.score,
+          token: connectingPlayer.account.token,
+          accessLevel: connectingPlayer.account.accessLevel
+        },
       });
     } else {
       res.status(400).json({
@@ -157,7 +161,7 @@ app.get("/game/lead", async (req, res) => {
     leaderBoard.sort(function (a, b) {
       return b.score - a.score;
     });
-    res.status(200).json(leaderBoard);
+    res.status(200).json({leaderBoard:leaderBoard});
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
