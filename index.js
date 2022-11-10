@@ -147,7 +147,7 @@ app.post("/player/login", async (req, res) => {
   }
 });
 
-//--4d--// connections automatique de joueurs via leur token
+//--4d--// connection automatique de joueurs via leur token (autologin)
 app.post("/player/autologin", async (req, res) => {
   try {
     const connectingPlayer = await Player.findOne({ name: req.body.name });
