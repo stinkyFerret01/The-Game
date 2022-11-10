@@ -1,3 +1,5 @@
+//-- pour choisir une base de données locale, rdv balise //-2a-//
+
 //////---1---////// SERVER CONFIG
 const express = require("express");
 const app = express();
@@ -8,10 +10,15 @@ app.use(express.json());
 app.use(cors());
 
 //////---2---////// DATABASE-CONFIG
+//-2a-// connexion à la base de données
+//--Online Register--//
 const mongoose = require("mongoose");
-mongoose.connect("mongodb://localhost:27017/The-Game-Data");
+mongoose.connect(process.env.DATABASE_URL);
 
-//-2a-// modeles
+//--Local Register--//
+// mongoose.connect("mongodb://localhost:27017/The-Game-Data");
+
+//-2b-// modeles
 const Player = mongoose.model("Player", {
   mail: String,
   name: String,
@@ -110,7 +117,7 @@ app.post("/player/signup", async (req, res) => {
   }
 });
 
-//--4c--// connection de joueurs (login)
+//--4c--// connexion de joueurs (login)
 app.post("/player/login", async (req, res) => {
   try {
     const connectingPlayer = await Player.findOne({ mail: req.body.mail });
@@ -147,7 +154,7 @@ app.post("/player/login", async (req, res) => {
   }
 });
 
-//--4d--// connection automatique de joueurs via leur token (autologin)
+//--4d--// connexion automatique de joueurs via leur token (autologin)
 app.post("/player/autologin", async (req, res) => {
   try {
     const connectingPlayer = await Player.findOne({ name: req.body.name });
@@ -197,7 +204,7 @@ app.all("*", (req, res) => {
   res.status(404).json({ Alerte: "Page not found" });
 });
 
-//////---5---//////PORT CONFIG
-app.listen(3000, () => {
-  console.log("Server has started");
+//////---5---////// PORT CONFIG
+app.listen(process.env.PORT || 3000, () => {
+  console.log("Server has started (online)");
 });
