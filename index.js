@@ -252,7 +252,7 @@ app.post("/admin/players", isAdmin, async (req, res) => {
 app.post("/admin/ban", isAdmin, async (req, res) => {
   try {
     const playerToBan = await Player.findById(req.body.bannedId);
-    if (playerToBan.accessLevel >= adminlvl) {
+    if (playerToBan.accessLevel < adminlvl) {
       await Player.findByIdAndDelete(req.body.bannedId);
       const newList = [];
       const playersData = await Player.find();
