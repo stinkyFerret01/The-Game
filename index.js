@@ -22,11 +22,11 @@ mongoose.connect(process.env.DATABASE_URL);
 const Player = mongoose.model("Player", {
   mail: String,
   name: String,
+  accessLevel: Number,
   account: {
     salt: String,
     hash: String,
     token: String,
-    accessLevel: Number,
   },
   settings: {},
   score: { score: Number, level: Number },
@@ -43,14 +43,32 @@ const uid2 = require("uid2");
 const isAdmin = async (req, res, next) => {
   try {
     const admin = await Player.findById(req.body.id);
-    console.log(admin.account.isAdmin);
-    if (admin.account.accessLevel > 1) {
-      console.log("ok");
+    if (admin.accessLevel > 0) {
       return next();
     } else {
-      return res
-        .status(401)
-        .json({ error: "Unauthorized", player: admin.name });
+      return res.status(401).json({
+        error: "Unauthorized",
+        Alerte: "vous n'etes pas authorisé à accéder à ces données",
+        player: admin.name,
+      });
+    }
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+//--3c--// authentification propriétaire
+const isLord = async (req, res, next) => {
+  try {
+    const lord = await Player.findById(req.body.id);
+    if (lord.accessLevel > 1) {
+      return next();
+    } else {
+      return res.status(401).json({
+        error: "Unauthorized",
+        Alerte: "vous n'etes pas authorisé à accéder à ces données",
+        player: lord.name,
+      });
     }
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -87,11 +105,11 @@ app.post("/player/signup", async (req, res) => {
         const newPlayer = new Player({
           mail: req.body.mail,
           name: req.body.name,
+          accessLevel: 0,
           account: {
             salt: newSalt,
             hash: newHash,
             token: token,
-            accessLevel: 0,
           },
           settings: {},
           score: { score: 0, level: 1 },
@@ -100,6 +118,7 @@ app.post("/player/signup", async (req, res) => {
         res.status(200).json({
           message: "enregistrement terminé!",
           playerData: {
+            id: newPlayer._id,
             name: newPlayer.name,
             score: newPlayer.score,
             token: newPlayer.account.token,
@@ -138,10 +157,11 @@ app.post("/player/login", async (req, res) => {
       res.status(200).json({
         message: "Vous êtes connecté!",
         playerData: {
+          id: connectingPlayer._id,
           name: connectingPlayer.name,
           score: connectingPlayer.score,
           token: connectingPlayer.account.token,
-          accessLevel: connectingPlayer.account.accessLevel,
+          accessLevel: connectingPlayer.accessLevel,
         },
       });
     } else {
@@ -171,9 +191,10 @@ app.post("/player/autologin", async (req, res) => {
       res.status(200).json({
         message: "Vous êtes connecté!",
         playerData: {
+          id: connectingPlayer._id,
           name: connectingPlayer.name,
           score: connectingPlayer.score,
-          accessLevel: connectingPlayer.account.accessLevel,
+          accessLevel: connectingPlayer.accessLevel,
         },
       });
     }
@@ -199,12 +220,69 @@ app.get("/game/lead", async (req, res) => {
   }
 });
 
-//--404--//
+//-- ADMIN only
+//--4k--// acces à la liste des joueurs (sensible)
+app.post("/admin/players", isAdmin, async (req, res) => {
+  try {
+    const playersList = [];
+    const playersData = await Player.find();
+    playersData.forEach((player) =>
+      playersList.push({
+        id: player._id,
+        name: player.name,
+        mail: player.mail,
+        score: player.score,
+        accessLevel: player.account.accessLevel,
+      })
+    );
+    res.status(200).json({
+      message: "requête accordée!",
+      playersList: playersList,
+    });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+//--4l--// suppression d'un joueur
+app.post("/admin/ban", isAdmin, async (req, res) => {
+  try {
+    await Player.findByIdAndDelete(req.body.bannedId);
+    res.status(200).json({
+      message: "le joueur a été banni",
+    });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+//--4m--// suppression d'un ou plusieur messages (chat public)
+
+//-- LORD only
+//--4u--// promotion ou rétrogradation d'un joueur au rang d'administrateur
+app.put("/lord/promote", isLord, async (req, res) => {
+  try {
+    const playerToPromote = await Player.findByIdAndUpdate(
+      req.body.promotedId,
+      { accessLevel: req.body.newAL },
+      { new: true }
+    );
+    res.status(200).json({
+      message: "statut modifié!",
+      name: playerToPromote.name,
+      accessLevel: playerToPromote.accessLevel,
+    });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+//--/404/--//
 app.all("*", (req, res) => {
   res.status(404).json({ Alerte: "Page not found" });
 });
 
 //////---5---////// PORT CONFIG
 app.listen(process.env.PORT || 3000, () => {
-  console.log("Server has started (online)");
+  console.log("Server has started");
 });
