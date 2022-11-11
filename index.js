@@ -39,11 +39,15 @@ const SHA256 = require("crypto-js/sha256");
 const encBase64 = require("crypto-js/enc-base64");
 const uid2 = require("uid2");
 
-//-3b-// authentification administrateur
+//-3b-// déclaration des niveaux d'access
+const adminlvl = 5;
+const lordlvl = 10;
+
+//-3c-// authentification administrateur
 const isAdmin = async (req, res, next) => {
   try {
     const admin = await Player.findById(req.body.id);
-    if (admin.accessLevel > 0) {
+    if (admin.accessLevel >= adminlvl) {
       return next();
     } else {
       return res.status(401).json({
@@ -57,11 +61,11 @@ const isAdmin = async (req, res, next) => {
   }
 };
 
-//--3c--// authentification propriétaire
+//--3d--// authentification propriétaire
 const isLord = async (req, res, next) => {
   try {
     const lord = await Player.findById(req.body.id);
-    if (lord.accessLevel > 1) {
+    if (lord.accessLevel >= lordlvl) {
       return next();
     } else {
       return res.status(401).json({
@@ -232,7 +236,7 @@ app.post("/admin/players", isAdmin, async (req, res) => {
         name: player.name,
         mail: player.mail,
         score: player.score,
-        accessLevel: player.account.accessLevel,
+        accessLevel: player.accessLevel,
       })
     );
     res.status(200).json({
@@ -247,10 +251,30 @@ app.post("/admin/players", isAdmin, async (req, res) => {
 //--4l--// suppression d'un joueur
 app.post("/admin/ban", isAdmin, async (req, res) => {
   try {
-    await Player.findByIdAndDelete(req.body.bannedId);
-    res.status(200).json({
-      message: "le joueur a été banni",
-    });
+    const playerToBan = await Player.findById(req.body.bannedId);
+    if (playerToBan.accessLevel === 0) {
+      await Player.findByIdAndDelete(req.body.bannedId);
+      const newList = [];
+      const playersData = await Player.find();
+      playersData.forEach((player) =>
+        newList.push({
+          id: player._id,
+          name: player.name,
+          mail: player.mail,
+          score: player.score,
+          accessLevel: player.accessLevel,
+        })
+      );
+      res.status(200).json({
+        message: "le joueur a été banni",
+        newList: newList,
+      });
+    } else {
+      res.status(400).json({
+        Alerte:
+          "vous n'êtes pas habilité à effacer ce joueur des bases de données!",
+      });
+    }
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
@@ -267,10 +291,22 @@ app.put("/lord/promote", isLord, async (req, res) => {
       { accessLevel: req.body.newAL },
       { new: true }
     );
+    const newList = [];
+    const playersData = await Player.find();
+    playersData.forEach((player) =>
+      newList.push({
+        id: player._id,
+        name: player.name,
+        mail: player.mail,
+        score: player.score,
+        accessLevel: player.accessLevel,
+      })
+    );
     res.status(200).json({
       message: "statut modifié!",
       name: playerToPromote.name,
       accessLevel: playerToPromote.accessLevel,
+      newList: newList,
     });
   } catch (error) {
     res.status(400).json({ error: error.message });
