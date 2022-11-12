@@ -1,6 +1,5 @@
-//-- pour choisir une base de données locale, rdv balise //-2a-//
-
 //////---1---////// SERVER CONFIG
+
 const express = require("express");
 const app = express();
 const cors = require("cors");
@@ -10,15 +9,19 @@ app.use(express.json());
 app.use(cors());
 
 //////---2---////// DATABASE-CONFIG
+
 //-2a-// connexion à la base de données
-//--Online Register--//
+
+//-- Online Register
 const mongoose = require("mongoose");
 mongoose.connect(process.env.DATABASE_URL);
 
-//--Local Register--//
+//-- Local Register
 // mongoose.connect("mongodb://localhost:27017/The-Game-Data");
 
 //-2b-// modeles
+
+//-- Player
 const Player = mongoose.model("Player", {
   mail: String,
   name: String,
@@ -224,8 +227,9 @@ app.get("/game/lead", async (req, res) => {
   }
 });
 
-//-- ADMIN only
-//--4k--// acces à la liste des joueurs (sensible)
+//-- ADMIN only --//
+
+//--4k--// ADMIN // acces à la liste des joueurs (sensible)
 app.post("/admin/players", isAdmin, async (req, res) => {
   try {
     const playersList = [];
@@ -248,7 +252,7 @@ app.post("/admin/players", isAdmin, async (req, res) => {
   }
 });
 
-//--4l--// suppression d'un joueur
+//--4l--// ADMIN // suppression d'un joueur
 app.post("/admin/ban", isAdmin, async (req, res) => {
   try {
     const playerToBan = await Player.findById(req.body.bannedId);
@@ -280,10 +284,11 @@ app.post("/admin/ban", isAdmin, async (req, res) => {
   }
 });
 
-//--4m--// suppression d'un ou plusieur messages (chat public)
+//--4m--// ADMIN // suppression d'un message (chat public)
 
-//-- LORD only
-//--4u--// promotion ou rétrogradation d'un joueur au rang d'administrateur
+//-- LORD only --//
+
+//--4u--// LORD // promotion ou rétrogradation d'un joueur au rang d'administrateur
 app.put("/lord/promote", isLord, async (req, res) => {
   try {
     const playerToPromote = await Player.findByIdAndUpdate(
