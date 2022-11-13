@@ -21,6 +21,7 @@ mongoose.connect(process.env.DATABASE_URL);
 
 //-2b-// modeles
 //-- Player
+//-- compte utilisateur
 const Player = mongoose.model("Player", {
   mail: String,
   name: String,
@@ -31,16 +32,24 @@ const Player = mongoose.model("Player", {
     token: String,
   },
   settings: {},
+  chats: [String],
   score: { score: Number, level: Number },
 });
 
 //-- PublicMessage
+//-- message destiné au chat publique
 const PublicMessage = mongoose.model("PublicMessage", {
   publisherId: String,
   publisherToken: String,
   publisherName: String,
   publisherMessage: String,
+  publisherAccessLevel: Number,
   publicationDate: String,
+});
+//-- PrivateChat
+//-- ensemble de message lié à une conversation privée dans un tableau
+const PrivateChat = mongoose.model("PrivateChat", {
+  chat: [Object],
 });
 
 //////---3---////// AUTHENTIFICATION
@@ -51,18 +60,28 @@ const encBase64 = require("crypto-js/enc-base64");
 const uid2 = require("uid2");
 
 //-3b-// déclaration des niveaux d'access
+const bannedlvl = 0;
+const restrictedlvl = 1;
 const playerlvl = 2;
+const player2lvl = 3;
 const adminlvl = 5;
 const lordlvl = 10;
 
-//-3c-// authentification joueur connecté
-const isCo = async (req, res, next) => {
+//-3c-// authentification joueur connecté (non restreint)
+const isPlayer = async (req, res, next) => {
   try {
-    const co = await Player.findById(req.body.playerId);
-    if (co && co.account.token === req.body.playerToken) {
-      console.log("isCo : passed");
+    const player = await Player.findById(req.body.playerId);
+    if (
+      player &&
+      player.account.token === req.body.playerToken &&
+      player.accessLevel >= playerlvl
+    ) {
+      console.log("isPlayerlvl : passed");
+      const accessLevel = playerlvl.accessLevel;
+      req.access = accessLevel;
       return next();
     } else {
+      console.log("isPlayerlvl : NO NO NO!!");
       return res.status(401).json({
         error: "Unauthorized",
         Alerte: "vous n'etes pas authorisé à accéder à ces données",
@@ -73,14 +92,41 @@ const isCo = async (req, res, next) => {
   }
 };
 
-//-3d-// authentification administrateur
+//-3d-// authentification joueur connecté niveau 2
+const isPlayer2 = async (req, res, next) => {
+  try {
+    const player2 = await Player.findById(req.body.playerId);
+    if (
+      player2 &&
+      player2.account.token === req.body.playerToken &&
+      player2.accessLevel >= player2lvl
+    ) {
+      console.log("isPlayer2 : passed");
+      const accessLevel = player2.accessLevel;
+      req.access = accessLevel;
+      return next();
+    } else {
+      console.log("isPlayer2 : NO NO NO!!");
+      return res.status(401).json({
+        error: "Unauthorized",
+        Alerte: "vous n'etes pas authorisé à accéder à ces données",
+      });
+    }
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+//-3f-// authentification administrateur
 const isAdmin = async (req, res, next) => {
   try {
     const admin = await Player.findById(req.body.id);
     if (admin.accessLevel >= adminlvl) {
       console.log("isAdmin : passed");
+      req.accessLevel = admin.accessLevel;
       return next();
     } else {
+      console.log("isAdmin : NO NO NO!!");
       return res.status(401).json({
         error: "Unauthorized",
         Alerte: "vous n'etes pas authorisé à accéder à ces données",
@@ -92,14 +138,16 @@ const isAdmin = async (req, res, next) => {
   }
 };
 
-//--3e--// authentification propriétaire
+//--3g--// authentification propriétaire
 const isLord = async (req, res, next) => {
   try {
     const lord = await Player.findById(req.body.id);
     if (lord.accessLevel >= lordlvl) {
       console.log("isLord : passed");
+      req.accessLevel = lord.accessLevel;
       return next();
     } else {
+      console.log("isLord : NO NO NO!!");
       return res.status(401).json({
         error: "Unauthorized",
         Alerte: "vous n'etes pas authorisé à accéder à ces données",
@@ -114,8 +162,11 @@ const isLord = async (req, res, next) => {
 //////---4---////// ROUTES
 
 //--4a--// test
-app.post("/game/admin", isAdmin, async (req, res) => {
-  res.json({ message: "youre an admin" });
+app.post("/pc", async (req, res) => {
+  const tester = await Player.findById(req.body.playerId);
+  console.log(tester.chats);
+  const displayit = tester.chats;
+  console.log(displayit[0]);
 });
 
 //--4b--// enregistrement de joueurs (signUp)
@@ -260,7 +311,7 @@ app.get("/game/lead", async (req, res) => {
 });
 
 //--4f--// récupération de le liste des messages publiques
-app.post("/publicchat/get", isCo, async (req, res) => {
+app.post("/publicchat/get", async (req, res) => {
   try {
     const publicChat = await PublicMessage.find();
     res.status(200).json({
@@ -273,18 +324,70 @@ app.post("/publicchat/get", isCo, async (req, res) => {
 });
 
 //--4g--// publication d'un message sur le chat public (game chat)
-app.post("/publicchat/publish", isCo, async (req, res) => {
+app.post("/publicchat/publish", isPlayer, async (req, res) => {
   try {
     const newPublicMessage = new PublicMessage({
       playerId: req.body.playerId,
-      playerToken: req.body.playerToken,
       publisherName: req.body.publisherName,
+      publisherAccessLevel: req.access,
       publisherMessage: req.body.publisherMessage,
       publicationDate: "en construction",
     });
     await newPublicMessage.save();
     const publicChat = await PublicMessage.find();
     res.status(200).json({ message: "message publié", publicChat: publicChat });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+//--4h--// création d'un chat privé ou addition d'un message
+app.post("/privatechat/send", isPlayer2, async (req, res) => {
+  try {
+    let sender = await Player.findById(req.body.playerId);
+    let receiver = await Player.findById(req.body.receiverId);
+    if (req.body.chatId === undefined) {
+      const newPrivateChat = new PrivateChat({
+        chat: [
+          {
+            playerId: req.body.playerId,
+            receiverId: req.body.receiverId,
+            senderName: sender.name,
+            receiverAccessLevel: receiver.accessLevel,
+            senderMessage: req.body.senderMessage,
+            messageDate: "en construction",
+          },
+        ],
+      });
+      let newChats = sender.chats;
+      newChats.push(newPrivateChat._id);
+      await newPrivateChat.save();
+      sender = await Player.findByIdAndUpdate(
+        req.body.playerId,
+        { chats: newChats },
+        { new: true }
+      );
+      newChats = receiver.chats;
+      newChats.push(newPrivateChat._id);
+      receiver = await Player.findByIdAndUpdate(
+        req.body.receiverId,
+        { chats: newChats },
+        { new: true }
+      );
+      res.status(200).json({ message: "message envoyé", chat: newPrivateChat });
+    } else {
+      const chatToUpdate = await PrivateChat.findById(req.body.chatId);
+      chatToUpdate.chat.push({
+        playerId: req.body.playerId,
+        receiverId: req.body.receiverId,
+        senderName: sender.name,
+        receiverAccessLevel: receiver.accessLevel,
+        senderMessage: req.body.senderMessage,
+        messageDate: "en construction",
+      });
+      await chatToUpdate.save();
+      res.status(200).json({ message: "message envoyé", chat: chatToUpdate });
+    }
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
