@@ -49,6 +49,10 @@ const PublicMessage = mongoose.model("PublicMessage", {
 //-- PrivateChat
 //-- ensemble de message lié à une conversation privée dans un tableau
 const PrivateChat = mongoose.model("PrivateChat", {
+  seId: String,
+  seName: String,
+  reId: String,
+  reName: String,
   chat: [Object],
 });
 
@@ -76,12 +80,12 @@ const isPlayer = async (req, res, next) => {
       player.account.token === req.body.playerToken &&
       player.accessLevel >= playerlvl
     ) {
-      console.log("isPlayerlvl : passed");
+      console.log("isPlayer : passed");
       const accessLevel = playerlvl.accessLevel;
       req.access = accessLevel;
       return next();
     } else {
-      console.log("isPlayerlvl : NO NO NO!!");
+      console.log("isPlayer : NO NO NO!!");
       return res.status(401).json({
         error: "Unauthorized",
         Alerte: "vous n'etes pas authorisé à accéder à ces données",
@@ -341,19 +345,64 @@ app.post("/publicchat/publish", isPlayer, async (req, res) => {
   }
 });
 
-//--4h--// création d'un chat privé ou addition d'un message
+//--4h--// liste des joueurs joignables en chat privé
+app.post("/chatterlist/get", isPlayer, async (req, res) => {
+  try {
+    const player = await Player.findById(req.body.playerId);
+    const chatterList = [];
+    const chatterListSens = await Player.find();
+    chatterListSens.forEach(
+      (chatter) =>
+        chatter.name !== player.name &&
+        chatterList.push({
+          chatterName: chatter.name,
+          chatterId: chatter._id,
+          chatterAL: chatter.accessLevel,
+        })
+    );
+    res.status(200).json({
+      message: "requête chatterList accordée!",
+      chatterList: chatterList,
+    });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+//--4i--// récupération des chat privés
+app.post("/privatechat/get", isPlayer, async (req, res) => {
+  try {
+    const player = await Player.findById(req.body.playerId);
+    const chats = player.chats;
+    const privateChats = [];
+    for (let i = 0; i < chats.length; i++) {
+      const chat = await PrivateChat.findById(chats[i]);
+      privateChats.push(chat);
+    }
+    res.status(200).json({
+      message: "requête PrivateChats accordée!",
+      privateChats: privateChats,
+    });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+//--4j--// création d'un chat privé ou addition d'un message
 app.post("/privatechat/send", isPlayer2, async (req, res) => {
   try {
     let sender = await Player.findById(req.body.playerId);
     let receiver = await Player.findById(req.body.receiverId);
-    if (req.body.chatId === undefined) {
+    if (req.body.chatId === "") {
       const newPrivateChat = new PrivateChat({
+        seId: sender._id,
+        seName: sender.name,
+        reId: receiver._id,
+        reName: receiver.name,
+        receiverAccessLevel: receiver.accessLevel,
         chat: [
           {
-            playerId: req.body.playerId,
-            receiverId: req.body.receiverId,
-            senderName: sender.name,
-            receiverAccessLevel: receiver.accessLevel,
+            seName: sender.name,
             senderMessage: req.body.senderMessage,
             messageDate: "en construction",
           },
@@ -374,19 +423,27 @@ app.post("/privatechat/send", isPlayer2, async (req, res) => {
         { chats: newChats },
         { new: true }
       );
-      res.status(200).json({ message: "message envoyé", chat: newPrivateChat });
+      res
+        .status(200)
+        .json({
+          message: "message envoyé",
+          newPrivateChat: newPrivateChat.chat,
+        });
     } else {
+      let sender = await Player.findById(req.body.playerId);
+      let receiver = await Player.findById(req.body.receiverId);
       const chatToUpdate = await PrivateChat.findById(req.body.chatId);
       chatToUpdate.chat.push({
-        playerId: req.body.playerId,
-        receiverId: req.body.receiverId,
-        senderName: sender.name,
-        receiverAccessLevel: receiver.accessLevel,
+        seName: sender.name,
         senderMessage: req.body.senderMessage,
         messageDate: "en construction",
       });
+      chatToUpdate.seName = sender.name;
+      chatToUpdate.reName = receiver.name;
       await chatToUpdate.save();
-      res.status(200).json({ message: "message envoyé", chat: chatToUpdate });
+      res
+        .status(200)
+        .json({ message: "message envoyé", newPrivateChat: chatToUpdate.chat });
     }
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -395,7 +452,7 @@ app.post("/privatechat/send", isPlayer2, async (req, res) => {
 
 //-- ADMIN only --//
 
-//--4k--// ADMIN // acces à la liste des joueurs (sensible)
+//--4a--// ADMIN // acces à la liste des joueurs (sensible)
 app.post("/admin/players", isAdmin, async (req, res) => {
   try {
     const playersList = [];
@@ -418,7 +475,7 @@ app.post("/admin/players", isAdmin, async (req, res) => {
   }
 });
 
-//--4l--// ADMIN // suppression d'un joueur
+//--4b--// ADMIN // suppression d'un joueur
 app.post("/admin/ban", isAdmin, async (req, res) => {
   try {
     const playerToBan = await Player.findById(req.body.bannedId);
@@ -450,11 +507,11 @@ app.post("/admin/ban", isAdmin, async (req, res) => {
   }
 });
 
-//--4m--// ADMIN // suppression d'un message (chat public)
+//--4c--// ADMIN // suppression d'un message (chat public)
 
 //-- LORD only --//
 
-//--4u--// LORD // promotion ou rétrogradation d'un joueur au rang d'administrateur
+//--4a--// LORD // promotion ou rétrogradation d'un joueur au rang d'administrateur
 app.put("/lord/promote", isLord, async (req, res) => {
   try {
     const playerToPromote = await Player.findByIdAndUpdate(
