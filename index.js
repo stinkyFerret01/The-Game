@@ -10,6 +10,7 @@ require("dotenv").config();
 
 app.use(express.json());
 app.use(cors());
+// app.use(socket);
 
 //////---2---////// DATABASE-CONFIG
 
@@ -565,9 +566,9 @@ const server = app.listen(process.env.PORT || 3000, () => {
 //----------------------SOCKETSTUFF-------------------//
 const io = socket(server, {
   cors: {
-    origin: "http://localhost:3001",
+    origin: "*",
     // origin: "http://localhost:3000",
-    credentials: true,
+    // credentials: true,
   },
 });
 // const io = socket("http://localhost:3001");
@@ -575,10 +576,14 @@ const io = socket(server, {
 global.onlinePlayers = new Map();
 io.on("connection", (socket) => {
   console.log("socket connection");
-  global.chatSocket = socket;
-  socket.on("add-player", (playerId) => {
+  console.log(socket.connected);
+  // global.chatSocket = socket;
+  socket.on("test", (data) => {
     console.log("socket add-players");
-    onlinePlayers.set(playerId, socket.id);
+    console.log(data);
+    onlinePlayers.set(data.from, socket.id);
+    // const sendPlayerSocket = onlinePlayers.get(data);
+    socket.emit("retour", "test retour");
   });
   socket.on("send-msg", (data) => {
     console.log("socket send-msg");
