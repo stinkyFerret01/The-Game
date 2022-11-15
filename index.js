@@ -3,6 +3,9 @@
 const express = require("express");
 const app = express();
 const cors = require("cors");
+//----------------------SOCKETSTUFF-------------------//
+const socket = require("socket.io");
+//----------------------SOCKETSTUFF-------------------//
 require("dotenv").config();
 
 app.use(express.json());
@@ -46,6 +49,7 @@ const PublicMessage = mongoose.model("PublicMessage", {
   publisherAccessLevel: Number,
   publicationDate: String,
 });
+
 //-- PrivateChat
 //-- ensemble de message lié à une conversation privée dans un tableau
 const PrivateChat = mongoose.model("PrivateChat", {
@@ -85,6 +89,7 @@ const isPlayer = async (req, res, next) => {
       req.access = accessLevel;
       return next();
     } else {
+      console.log(player.accessLevel);
       console.log("isPlayer : NO NO NO!!");
       return res.status(401).json({
         error: "Unauthorized",
@@ -553,6 +558,34 @@ app.all("*", (req, res) => {
 });
 
 //////---5---////// PORT CONFIG
-app.listen(process.env.PORT || 3000, () => {
+const server = app.listen(process.env.PORT || 3000, () => {
   console.log("Server has started");
 });
+
+//----------------------SOCKETSTUFF-------------------//
+const io = socket(server, {
+  cors: {
+    origin: "http://localhost:3001",
+    // origin: "http://localhost:3000",
+    credentials: true,
+  },
+});
+// const io = socket("http://localhost:3001");
+
+global.onlinePlayers = new Map();
+io.on("connection", (socket) => {
+  console.log("socket connection");
+  global.chatSocket = socket;
+  socket.on("add-player", (playerId) => {
+    console.log("socket add-players");
+    onlinePlayers.set(playerId, socket.id);
+  });
+  socket.on("send-msg", (data) => {
+    console.log("socket send-msg");
+    const sendPlayerSocket = onlinePlayers.get(data.to);
+    if (sendPlayerSocket) {
+      socket.to(sendPlayerSocket).emit("msg-receive", data.msg);
+    }
+  });
+});
+//----------------------SOCKETSTUFF-------------------//
