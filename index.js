@@ -124,7 +124,7 @@ const isPlayer2 = async (req, res, next) => {
 //-3f-// authentification administrateur
 const isAdmin = async (req, res, next) => {
   try {
-    const admin = await Player.findById(req.body.id);
+    const admin = await Player.findById(req.body.playerId);
     if (admin.accessLevel >= adminlvl) {
       console.log("isAdmin : passed");
       req.accessLevel = admin.accessLevel;
@@ -423,12 +423,10 @@ app.post("/privatechat/send", isPlayer2, async (req, res) => {
         { chats: newChats },
         { new: true }
       );
-      res
-        .status(200)
-        .json({
-          message: "message envoyé",
-          newPrivateChat: newPrivateChat.chat,
-        });
+      res.status(200).json({
+        message: "message envoyé",
+        newPrivateChat: newPrivateChat.chat,
+      });
     } else {
       let sender = await Player.findById(req.body.playerId);
       let receiver = await Player.findById(req.body.receiverId);
@@ -478,8 +476,9 @@ app.post("/admin/players", isAdmin, async (req, res) => {
 //--4b--// ADMIN // suppression d'un joueur
 app.post("/admin/ban", isAdmin, async (req, res) => {
   try {
+    const banner = await Player.findById(req.body.playerId);
     const playerToBan = await Player.findById(req.body.bannedId);
-    if (playerToBan.accessLevel < adminlvl) {
+    if (banner.accessLevel > playerToBan.accessLevel) {
       await Player.findByIdAndDelete(req.body.bannedId);
       const newList = [];
       const playersData = await Player.find();
@@ -511,31 +510,38 @@ app.post("/admin/ban", isAdmin, async (req, res) => {
 
 //-- LORD only --//
 
-//--4a--// LORD // promotion ou rétrogradation d'un joueur au rang d'administrateur
-app.put("/lord/promote", isLord, async (req, res) => {
+//--4a--// LORD (adminrestricted) // promotion ou rétrogradation d'un joueur au rang d'administrateur
+app.put("/lord/promote", isAdmin, async (req, res) => {
   try {
-    const playerToPromote = await Player.findByIdAndUpdate(
-      req.body.promotedId,
-      { accessLevel: req.body.newAL },
-      { new: true }
-    );
-    const newList = [];
-    const playersData = await Player.find();
-    playersData.forEach((player) =>
-      newList.push({
-        id: player._id,
-        name: player.name,
-        mail: player.mail,
-        score: player.score,
-        accessLevel: player.accessLevel,
-      })
-    );
-    res.status(200).json({
-      message: "statut modifié!",
-      name: playerToPromote.name,
-      accessLevel: playerToPromote.accessLevel,
-      newList: newList,
-    });
+    const promoter = await Player.findById(req.body.playerId);
+    const promoted = await Player.findById(req.body.promotedId);
+    if (
+      promoter.accessLevel > promoted.accessLevel &&
+      req.body.newAL < promoter.accessLevel
+    ) {
+      const playerToPromote = await Player.findByIdAndUpdate(
+        req.body.promotedId,
+        { accessLevel: req.body.newAL },
+        { new: true }
+      );
+      const newList = [];
+      const playersData = await Player.find();
+      playersData.forEach((player) =>
+        newList.push({
+          id: player._id,
+          name: player.name,
+          mail: player.mail,
+          score: player.score,
+          accessLevel: player.accessLevel,
+        })
+      );
+      res.status(200).json({
+        message: "statut modifié!",
+        name: playerToPromote.name,
+        accessLevel: playerToPromote.accessLevel,
+        newList: newList,
+      });
+    }
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
