@@ -570,20 +570,19 @@ const io = socket(server, {
     credentials: true,
   },
 });
-// const io = socket("http://localhost:3001");
 
 global.onlinePlayers = new Map();
 io.on("connection", (socket) => {
   console.log("socket connection");
-  console.log(socket.connected);
-  // global.chatSocket = socket;
+  console.log(socket.id);
   socket.on("addPlayer", (data) => {
+    console.log(socket.id);
     console.log("socket add-players");
     onlinePlayers.set(data.from, socket.id);
-    const onplys = onlinePlayers.get(socket.id);
-    console.log(onplys);
   });
   socket.on("send-msg", (data) => {
+    const socketId = onlinePlayers.get(data.publisherId);
+    console.log(socketId);
     const msg = {
       publisherId: data.publisherId,
       publisherName: data.publisherName,
@@ -593,15 +592,8 @@ io.on("connection", (socket) => {
     };
     console.log("socket send-msg");
     if (data.publisherName && data.publisherMessage) {
-      socket.emit("retour", msg);
+      io.emit("retour", msg);
     }
   });
-  // socket.on("send-msg", (data) => {
-  //   console.log("socket send-msg");
-  //   const sendPlayerSocket = onlinePlayers.get(data.to);
-  //   if (sendPlayerSocket) {
-  //     socket.to(sendPlayerSocket).emit("msg-receive", data.msg);
-  //   }
-  // });
 });
 //----------------------SOCKETSTUFF-------------------//
