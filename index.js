@@ -44,7 +44,6 @@ const Player = mongoose.model("Player", {
 //-- message destiné au chat publique
 const PublicMessage = mongoose.model("PublicMessage", {
   publisherId: String,
-  publisherToken: String,
   publisherName: String,
   publisherMessage: String,
   publisherAccessLevel: Number,
@@ -578,19 +577,31 @@ io.on("connection", (socket) => {
   console.log("socket connection");
   console.log(socket.connected);
   // global.chatSocket = socket;
-  socket.on("test", (data) => {
+  socket.on("addPlayer", (data) => {
     console.log("socket add-players");
-    console.log(data);
     onlinePlayers.set(data.from, socket.id);
-    // const sendPlayerSocket = onlinePlayers.get(data);
-    socket.emit("retour", "test retour");
+    const onplys = onlinePlayers.get(socket.id);
+    console.log(onplys);
   });
   socket.on("send-msg", (data) => {
+    const msg = {
+      publisherId: data.publisherId,
+      publisherName: data.publisherName,
+      publisherMessage: data.publisherMessage,
+      publisherAccessLevel: data.publisherAccessLevel,
+      publicationDate: "none",
+    };
     console.log("socket send-msg");
-    const sendPlayerSocket = onlinePlayers.get(data.to);
-    if (sendPlayerSocket) {
-      socket.to(sendPlayerSocket).emit("msg-receive", data.msg);
+    if (data.publisherName && data.publisherMessage) {
+      socket.emit("retour", msg);
     }
   });
+  // socket.on("send-msg", (data) => {
+  //   console.log("socket send-msg");
+  //   const sendPlayerSocket = onlinePlayers.get(data.to);
+  //   if (sendPlayerSocket) {
+  //     socket.to(sendPlayerSocket).emit("msg-receive", data.msg);
+  //   }
+  // });
 });
 //----------------------SOCKETSTUFF-------------------//
