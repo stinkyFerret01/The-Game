@@ -567,7 +567,7 @@ const io = socket(server, {
   cors: {
     origin: "*",
     // origin: "http://localhost:3000",
-    // credentials: true,
+    credentials: true,
   },
 });
 // const io = socket("http://localhost:3001");
