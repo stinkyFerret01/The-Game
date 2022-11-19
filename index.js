@@ -29,6 +29,7 @@ mongoose.connect(process.env.DATABASE_URL);
 const Player = mongoose.model("Player", {
   mail: String,
   name: String,
+  avatar: String,
   accessLevel: Number,
   account: {
     salt: String,
@@ -45,6 +46,7 @@ const Player = mongoose.model("Player", {
 const PublicMessage = mongoose.model("PublicMessage", {
   publisherId: String,
   publisherName: String,
+  publisherAvatar: String,
   publisherMessage: String,
   publisherAccessLevel: Number,
   publicationDate: String,
@@ -54,8 +56,10 @@ const PublicMessage = mongoose.model("PublicMessage", {
 //-- ensemble de message lié à une conversation privée dans un tableau
 const PrivateChat = mongoose.model("PrivateChat", {
   seId: String,
+  seAvatar: String,
   seName: String,
   reId: String,
+  reAvatar: String,
   reName: String,
   chat: [Object],
 });
@@ -89,7 +93,6 @@ const isPlayer = async (req, res, next) => {
       req.access = accessLevel;
       return next();
     } else {
-      console.log(player.accessLevel);
       console.log("isPlayer : NO NO NO!!");
       return res.status(401).json({
         error: "Unauthorized",
@@ -201,6 +204,8 @@ app.post("/player/signup", async (req, res) => {
         const newPlayer = new Player({
           mail: req.body.mail,
           name: req.body.name,
+          avatar:
+            "https://avatars.dicebear.com/api/male/john.svg?background=%230000ff",
           accessLevel: playerlvl,
           account: {
             salt: newSalt,
@@ -216,6 +221,7 @@ app.post("/player/signup", async (req, res) => {
           playerData: {
             id: newPlayer._id,
             name: newPlayer.name,
+            avatar: newPlayer.avatar,
             score: newPlayer.score,
             token: newPlayer.account.token,
             accessLevel: newPlayer.account.accessLevel,
@@ -255,6 +261,7 @@ app.post("/player/login", async (req, res) => {
         playerData: {
           id: connectingPlayer._id,
           name: connectingPlayer.name,
+          avatar: connectingPlayer.avatar,
           score: connectingPlayer.score,
           token: connectingPlayer.account.token,
           accessLevel: connectingPlayer.accessLevel,
@@ -289,11 +296,29 @@ app.post("/player/autologin", async (req, res) => {
         playerData: {
           id: connectingPlayer._id,
           name: connectingPlayer.name,
+          avatar: connectingPlayer.avatar,
           score: connectingPlayer.score,
           accessLevel: connectingPlayer.accessLevel,
         },
       });
     }
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+//--?--// modification del'avatar
+app.post("/avatar/update", isPlayer, async (req, res) => {
+  try {
+    const playerToUpdate = await Player.findByIdAndUpdate(
+      req.body.playerId,
+      { avatar: req.body.avatar },
+      { new: true }
+    );
+    res.status(200).json({
+      message: "requête avatar accordée",
+      playarAvatar: playerToUpdate.avatar,
+    });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
@@ -402,12 +427,15 @@ app.post("/privatechat/send", isPlayer2, async (req, res) => {
       const newPrivateChat = new PrivateChat({
         seId: sender._id,
         seName: sender.name,
+        seAvatar: sender.avatar,
         reId: receiver._id,
+        reAvatar: receiver.avatar,
         reName: receiver.name,
         receiverAccessLevel: receiver.accessLevel,
         chat: [
           {
             seName: sender.name,
+            seAvatar: sender.avatar,
             senderMessage: req.body.senderMessage,
             messageDate: "en construction",
           },
@@ -438,6 +466,7 @@ app.post("/privatechat/send", isPlayer2, async (req, res) => {
       const chatToUpdate = await PrivateChat.findById(req.body.chatId);
       chatToUpdate.chat.push({
         seName: sender.name,
+        seAvatar: sender.avatar,
         senderMessage: req.body.senderMessage,
         messageDate: "en construction",
       });
@@ -464,6 +493,7 @@ app.post("/admin/players", isAdmin, async (req, res) => {
       playersList.push({
         id: player._id,
         name: player.name,
+        avatar: player.avatar,
         mail: player.mail,
         score: player.score,
         accessLevel: player.accessLevel,
@@ -491,6 +521,7 @@ app.post("/admin/ban", isAdmin, async (req, res) => {
         newList.push({
           id: player._id,
           name: player.name,
+          avatar: player.avatar,
           mail: player.mail,
           score: player.score,
           accessLevel: player.accessLevel,
@@ -535,6 +566,7 @@ app.put("/lord/promote", isAdmin, async (req, res) => {
         newList.push({
           id: player._id,
           name: player.name,
+          avatar: player.avatar,
           mail: player.mail,
           score: player.score,
           accessLevel: player.accessLevel,
