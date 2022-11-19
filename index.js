@@ -410,6 +410,7 @@ app.post("/chatterlist/get", isPlayer, async (req, res) => {
         chatter.name !== player.name &&
         chatterList.push({
           chatterName: chatter.name,
+          chatterAvatar: chatter.avatar,
           chatterId: chatter._id,
           chatterAL: chatter.accessLevel,
         })
