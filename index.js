@@ -12,6 +12,29 @@ app.use(express.json());
 app.use(cors());
 // app.use(socket);
 
+//-- FONCTIONS
+const dater = () => {
+  let time = Date.now();
+  time = Math.floor(time / 1000);
+
+  let second = time % 60;
+  let minute = Math.floor((time / 60) % 60);
+  let hour = Math.floor(((time + 3600) / 60 / 60) % 24);
+  let displayTime = `${hour}` + ":" + `${minute}` + ":" + `${second}`;
+  let date = {
+    displayTime: displayTime,
+    hour: hour,
+    minute: minute,
+    second: second,
+  };
+  return {
+    displayTime: displayTime,
+    hour: hour,
+    minute: minute,
+    second: second,
+  };
+};
+
 //////---2---////// DATABASE-CONFIG
 
 //-2a-// connexion à la base de données
@@ -49,7 +72,7 @@ const PublicMessage = mongoose.model("PublicMessage", {
   publisherAvatar: String,
   publisherMessage: String,
   publisherAccessLevel: Number,
-  publicationDate: String,
+  publicationDate: Object,
 });
 
 //-- PrivateChat
@@ -366,7 +389,7 @@ app.post("/publicchat/publish", isPlayer, async (req, res) => {
       publisherName: req.body.publisherName,
       publisherAccessLevel: req.access,
       publisherMessage: req.body.publisherMessage,
-      publicationDate: "en construction",
+      publicationDate: dater(),
     });
     await newPublicMessage.save();
     const publicChat = await PublicMessage.find();
@@ -438,7 +461,7 @@ app.post("/privatechat/send", isPlayer2, async (req, res) => {
             seName: sender.name,
             seAvatar: sender.avatar,
             senderMessage: req.body.senderMessage,
-            messageDate: "en construction",
+            messageDate: dater(),
           },
         ],
       });
@@ -469,7 +492,7 @@ app.post("/privatechat/send", isPlayer2, async (req, res) => {
         seName: sender.name,
         seAvatar: sender.avatar,
         senderMessage: req.body.senderMessage,
-        messageDate: "en construction",
+        messageDate: dater(),
       });
       chatToUpdate.seName = sender.name;
       chatToUpdate.reName = receiver.name;
