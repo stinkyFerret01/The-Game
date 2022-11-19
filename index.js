@@ -310,6 +310,7 @@ app.post("/player/autologin", async (req, res) => {
 //--?--// modification del'avatar
 app.post("/avatar/update", isPlayer, async (req, res) => {
   try {
+    console.log();
     const playerToUpdate = await Player.findByIdAndUpdate(
       req.body.playerId,
       { avatar: req.body.avatar },
@@ -317,7 +318,7 @@ app.post("/avatar/update", isPlayer, async (req, res) => {
     );
     res.status(200).json({
       message: "requête avatar accordée",
-      playarAvatar: playerToUpdate.avatar,
+      newAvatarUrl: playerToUpdate.avatar,
     });
   } catch (error) {
     res.status(400).json({ error: error.message });
