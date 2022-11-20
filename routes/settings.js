@@ -38,7 +38,6 @@ const Player = require("../models/Player");
 //-3a-// modification de l'avatar
 router.post("/avatar/update", isPlayer, async (req, res) => {
   try {
-    console.log();
     const playerToUpdate = await Player.findByIdAndUpdate(
       req.body.playerId,
       { avatar: req.body.avatar },
