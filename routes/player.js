@@ -17,17 +17,27 @@ const Player = require("../models/Player");
 //-3a-// enregistrement de joueurs (signUp)
 router.post("/player/signup", async (req, res) => {
   try {
-    console.log("ok");
     if (
-      req.body.name === undefined ||
-      req.body.mail === undefined ||
-      req.body.password === undefined
+      req.body.name === "" ||
+      req.body.mail === "" ||
+      req.body.password === "" ||
+      req.body.confirmPassword === ""
     ) {
-      res.status(400).json({
-        Alerte:
-          "Les informations que vous nous avez transmises ne permettent pas la création de votre compte(infos manquantes ou invalides)",
-        Détails:
-          "pour vous enregistrer, vous devez nous transmettre un nom, une adresse mail et un mot de passe",
+      res.status(202).json({
+        alert: "tous les champs de ce formulaire doivent être remplis",
+      });
+    } else if (req.body.name.length < 3 || req.body.name.length > 10) {
+      res.status(202).json({
+        alert: "votre nom doit contenir entre 3 et 10 caractères",
+      });
+    } else if (req.body.password.length < 6 || req.body.password.length > 12) {
+      res.status(202).json({
+        alert: "votre mot de passe doit contenir entre 6 et 12 caractères",
+      });
+    } else if (req.body.password !== req.body.confirmPassword) {
+      res.status(202).json({
+        alert:
+          "le mot de passe et la confirmation du mot de passe doivent être strictement identiques",
       });
     } else {
       const player = await Player.findOne({ name: req.body.name });
@@ -62,8 +72,8 @@ router.post("/player/signup", async (req, res) => {
           },
         });
       } else {
-        res.status(400).json({
-          Alerte: "Un joueur a déja choisi ce nom!",
+        res.status(202).json({
+          alert: "un joueur a déja choisi ce nom!",
         });
       }
     }
@@ -78,8 +88,8 @@ router.post("/player/login", async (req, res) => {
     const connectingPlayer = await Player.findOne({ mail: req.body.mail });
     if (connectingPlayer === null) {
       res
-        .status(400)
-        .json({ Alerte: "votre Mot de passe ou votre email est invalide..." });
+        .status(202)
+        .json({ alert: "votre Mot de passe/email est invalide..." });
     } else if (
       connectingPlayer.account.hash ===
       SHA256(req.body.password + connectingPlayer.account.salt).toString(
@@ -102,8 +112,8 @@ router.post("/player/login", async (req, res) => {
         },
       });
     } else {
-      res.status(400).json({
-        Alerte: "votre Mot de passe ou votre email est invalide!",
+      res.status(202).json({
+        alert: "votre Mot de passe/email est invalide!",
       });
     }
   } catch (error) {
@@ -116,17 +126,17 @@ router.post("/player/autologin", async (req, res) => {
   try {
     const connectingPlayer = await Player.findOne({ name: req.body.name });
     if (connectingPlayer === null) {
-      res.status(400).json({
-        Alerte:
+      res.status(202).json({
+        alert:
           "vous ne faites pas parti de notre base de données, vous devez vous enregistrer",
       });
     } else if (connectingPlayer.account.token !== req.body.token) {
-      res.status(400).json({
-        Alerte: "votre token a expiré, vous devez vous reconnecter",
+      res.status(202).json({
+        alert: "votre token a expiré, vous devez vous reconnecter",
       });
     } else {
       res.status(200).json({
-        message: "Vous êtes connecté!",
+        message: "vous êtes connecté!",
         playerData: {
           id: connectingPlayer._id,
           name: connectingPlayer.name,
