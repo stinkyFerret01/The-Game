@@ -9,17 +9,17 @@ const adminlvl = 5;
 //-1a-// authentification administrateur
 const isAdmin = async (req, res, next) => {
   try {
-    const admin = await Player.findById(req.body.playerId);
-    if (admin.accessLevel >= adminlvl) {
+    const player = await Player.findById(req.body.playerId);
+    if (player.accessLevel >= adminlvl) {
       console.log("isAdmin : passed");
-      req.accessLevel = admin.accessLevel;
+      req.accessLevel = player.accessLevel;
       return next();
     } else {
       console.log("isAdmin : NO NO NO!!");
       return res.status(401).json({
         error: "Unauthorized",
         Alerte: "vous n'etes pas authorisé à accéder à ces données",
-        player: admin.name,
+        player: player.name,
       });
     }
   } catch (error) {

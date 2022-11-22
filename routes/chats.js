@@ -35,14 +35,14 @@ const isPlayer = async (req, res, next) => {
 //-1b-// authentification joueur connecté niveau 2
 const isPlayer2 = async (req, res, next) => {
   try {
-    const player2 = await Player.findById(req.body.playerId);
+    const player = await Player.findById(req.body.playerId);
     if (
-      player2 &&
-      player2.account.token === req.body.playerToken &&
-      player2.accessLevel >= player2lvl
+      player &&
+      player.account.token === req.body.playerToken &&
+      player.accessLevel >= player2lvl
     ) {
       console.log("isPlayer2 : passed");
-      const accessLevel = player2.accessLevel;
+      const accessLevel = player.accessLevel;
       req.access = accessLevel;
       return next();
     } else {

@@ -85,30 +85,27 @@ router.post("/player/signup", async (req, res) => {
 //-3b-// connexion de joueurs (login)
 router.post("/player/login", async (req, res) => {
   try {
-    const connectingPlayer = await Player.findOne({ mail: req.body.mail });
-    if (connectingPlayer === null) {
+    const player = await Player.findOne({ mail: req.body.mail });
+    if (player === null) {
       res
         .status(202)
         .json({ alert: "votre Mot de passe/email est invalide..." });
     } else if (
-      connectingPlayer.account.hash ===
-      SHA256(req.body.password + connectingPlayer.account.salt).toString(
-        encBase64
-      )
+      player.account.hash ===
+      SHA256(req.body.password + player.account.salt).toString(encBase64)
     ) {
-      console.log(connectingPlayer);
       genToken = uid2(32);
-      connectingPlayer.account.token = genToken;
-      await connectingPlayer.save();
+      player.account.token = genToken;
+      await player.save();
       res.status(200).json({
         message: "Vous êtes connecté!",
         playerData: {
-          id: connectingPlayer._id,
-          name: connectingPlayer.name,
-          avatar: connectingPlayer.avatar,
-          score: connectingPlayer.score,
-          token: connectingPlayer.account.token,
-          accessLevel: connectingPlayer.accessLevel,
+          id: player._id,
+          name: player.name,
+          avatar: player.avatar,
+          score: player.score,
+          token: player.account.token,
+          accessLevel: player.accessLevel,
         },
       });
     } else {
@@ -124,13 +121,13 @@ router.post("/player/login", async (req, res) => {
 //-3c-// connexion automatique de joueurs via leur token (autologin)
 router.post("/player/autologin", async (req, res) => {
   try {
-    const connectingPlayer = await Player.findOne({ name: req.body.name });
-    if (connectingPlayer === null) {
+    const player = await Player.findOne({ name: req.body.name });
+    if (player === null) {
       res.status(202).json({
         alert:
           "vous ne faites pas parti de notre base de données, vous devez vous enregistrer",
       });
-    } else if (connectingPlayer.account.token !== req.body.token) {
+    } else if (player.account.token !== req.body.token) {
       res.status(202).json({
         alert: "votre token a expiré, vous devez vous reconnecter",
       });
@@ -138,11 +135,11 @@ router.post("/player/autologin", async (req, res) => {
       res.status(200).json({
         message: "vous êtes connecté!",
         playerData: {
-          id: connectingPlayer._id,
-          name: connectingPlayer.name,
-          avatar: connectingPlayer.avatar,
-          score: connectingPlayer.score,
-          accessLevel: connectingPlayer.accessLevel,
+          id: player._id,
+          name: player.name,
+          avatar: player.avatar,
+          score: player.score,
+          accessLevel: player.accessLevel,
         },
       });
     }
