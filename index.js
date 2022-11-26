@@ -38,17 +38,21 @@ app.use(settingsRoutes);
 const gameRoutes = require("./routes/game.js");
 app.use(gameRoutes);
 
+//--5f--// ia (gestion des données de l'ia)
+const iaRoutes = require("./routes/ia.js");
+app.use(iaRoutes);
+
 //--/404/--//
 app.all("*", (req, res) => {
   res.status(404).json({ Alerte: "Page not found" });
 });
 
-//////---6---////// PORT CONFIG
+//////---7---////// PORT CONFIG
 const server = app.listen(process.env.PORT || 3000, () => {
   console.log("Server has started");
 });
 
-//////---7---////// SOCKETS
+//////---8---////// SOCKETS
 //-- premiere utilisation de sockets dans un projet
 const socket = require("socket.io");
 const io = socket(server, {
