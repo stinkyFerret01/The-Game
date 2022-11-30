@@ -16,9 +16,11 @@ router.post("/ia/save", async (req, res) => {
   }
 });
 
-//-3a-// appel des probs
+//-3b-// appel des probs
 router.post("/ia/get", async (req, res) => {
   try {
+    // let modelToFind = req.body.modelToFind;
+    // const models = await IaGame.find();
     res.status(200).json({
       message: "requête ia probs accordée",
       probs: "probs",
